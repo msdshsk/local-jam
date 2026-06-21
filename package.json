@@ -1,0 +1,52 @@
+{
+  "name": "local-jam",
+  "version": "0.0.1",
+  "description": "FigJamとFigmaの中間を狙う、Webアプリの超簡単モック作成ツール",
+  "main": "./out/main/index.js",
+  "author": "msd.shsk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/msdshsk/local-jam.git"
+  },
+  "homepage": "https://github.com/msdshsk/local-jam#readme",
+  "bugs": {
+    "url": "https://github.com/msdshsk/local-jam/issues"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
+    "test:all": "vitest run && npm run test:e2e"
+  },
+  "dependencies": {
+    "@fontsource/yomogi": "^5.2.7",
+    "@xyflow/react": "^12.3.5",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/node": "^20.17.9",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.1",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^4.1.9"
+  }
+}

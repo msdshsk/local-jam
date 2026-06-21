@@ -1,0 +1,14 @@
+# テキストは LF に正規化（OSS・クロスプラットフォーム向け）
+* text=auto eol=lf
+
+# バイナリ（変換しない）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ljam binary

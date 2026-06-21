@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* キャンバス系UI（部品・メニュー・右クリックメニュー等）はテキスト選択不可。
+   実際に編集する入力欄だけ選択可に戻す。 */
+#root {
+  -webkit-user-select: none;
+  user-select: none;
+}
+#root input,
+#root textarea,
+#root [contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 部品テーマ: PartNode が --jam-* を上書きし、color-mix で濃淡を派生 */
+:root {
+  --jam-bg: #ffffff;
+  --jam-ink: #374151;
+  --jam-text: #374151;
+}
+.t-bg {
+  background-color: var(--jam-bg);
+}
+.t-fill {
+  background-color: color-mix(in srgb, var(--jam-ink) 10%, var(--jam-bg));
+}
+.t-fill-strong {
+  background-color: color-mix(in srgb, var(--jam-ink) 22%, var(--jam-bg));
+}
+.t-border {
+  border-color: var(--jam-ink);
+}
+.t-line {
+  border-color: color-mix(in srgb, var(--jam-ink) 45%, var(--jam-bg));
+}
+.t-text {
+  color: var(--jam-text);
+}
+.t-muted {
+  color: color-mix(in srgb, var(--jam-text) 55%, var(--jam-bg));
+}
