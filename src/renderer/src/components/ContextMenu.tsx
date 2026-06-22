@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useJamStore } from '../store'
 import type { XY } from '../geometry'
 
@@ -26,6 +26,24 @@ export default function ContextMenu({ x, y, pastePos, onClose }: Props) {
   const setInspectorOpen = useJamStore((s) => s.setInspectorOpen)
 
   const [alignSub, setAlignSub] = useState(false)
+
+  // 画面端でメニューが切れない（WebViewは画面外にはみ出せずoverflow:hiddenされる）よう、
+  // 実寸を測ってウィンドウ内にクランプ。サブメニューは右に出せなければ左へ反転。
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ left: x, top: y })
+  const [subLeft, setSubLeft] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const m = 8
+    let left = x
+    let top = y
+    if (left + r.width > window.innerWidth - m) left = Math.max(m, window.innerWidth - r.width - m)
+    if (top + r.height > window.innerHeight - m) top = Math.max(m, window.innerHeight - r.height - m)
+    setPos({ left, top })
+    setSubLeft(left + r.width + 160 > window.innerWidth)
+  }, [x, y])
 
   const selected = nodes.filter((n) => n.selected)
   const partCount = selected.filter((n) => n.type === 'part').length
@@ -61,8 +79,9 @@ export default function ContextMenu({ x, y, pastePos, onClose }: Props) {
         }}
       />
       <div
+        ref={ref}
         className="fixed z-50 min-w-[180px] rounded-md border border-jam-line bg-white py-1 shadow-lg"
-        style={{ left: x, top: y }}
+        style={{ left: pos.left, top: pos.top }}
       >
         <button className={item} disabled={!has} onClick={run(copySelected)}>
           コピー <span className="text-jam-line">Ctrl+C</span>
@@ -103,7 +122,12 @@ export default function ContextMenu({ x, y, pastePos, onClose }: Props) {
             <span className="text-jam-line">▸</span>
           </button>
           {alignSub && canAlign && (
-            <div className="absolute left-full top-0 z-50 -ml-1 min-w-[150px] rounded-md border border-jam-line bg-white py-1 shadow-lg">
+            <div
+              className={
+                'absolute top-0 z-50 min-w-[150px] rounded-md border border-jam-line bg-white py-1 shadow-lg ' +
+                (subLeft ? 'right-full -mr-1' : 'left-full -ml-1')
+              }
+            >
               <button className={item} onClick={run(() => alignSelected('left'))}>
                 左揃え
               </button>
