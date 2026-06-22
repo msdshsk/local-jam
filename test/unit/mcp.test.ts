@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { handleMcp } from '../../src/main/mcp'
+import type { AddressInfo } from 'node:net'
+import { handleMcp, createMcpServer } from '../../src/main/mcp'
 
 const snap = {
   doc: {
@@ -54,5 +55,24 @@ describe('handleMcp（MCP JSON-RPC）', () => {
     const res = r(handleMcp({ id: 5, method: 'tools/call', params: { name: 'describe_layout' } }, () => null))
     const text = (res.result as { content: { text: string }[] }).content[0].text
     expect(typeof text).toBe('string')
+  })
+
+  // 回帰: ポート競合(EADDRINUSE)は throw でなく 'error' イベントで飛ぶ。
+  // index.ts は 'error' を拾ってアプリ本体を起動させ続ける（未捕捉例外ダイアログを出さない）。
+  it('ポート使用中の listen は throw せず error イベントで EADDRINUSE を通知する', async () => {
+    const s1 = createMcpServer(() => null)
+    await new Promise<void>((resolve) => s1.listen(0, '127.0.0.1', resolve))
+    const port = (s1.address() as AddressInfo).port
+
+    const s2 = createMcpServer(() => null)
+    const code = await new Promise<string | undefined>((resolve) => {
+      s2.on('error', (e: NodeJS.ErrnoException) => resolve(e.code))
+      // 同期 throw されない（されたらこの呼び出しで例外＝テスト失敗）
+      s2.listen(port, '127.0.0.1', () => resolve('LISTENED'))
+    })
+    expect(code).toBe('EADDRINUSE')
+
+    await new Promise<void>((resolve) => s1.close(() => resolve()))
+    await new Promise<void>((resolve) => s2.close(() => resolve()))
   })
 })

@@ -262,8 +262,21 @@ app.whenReady().then(async () => {
   registerIpc()
   await loadInitialSnapshot()
   // 読み取り専用 MCP サーバ（localhostのみ）。Claude から http://localhost:4319/mcp で接続。
+  // listen の EADDRINUSE は同期 throw ではなく 'error' イベントで飛ぶ。ハンドルしないと
+  // 未捕捉例外ダイアログになるため、必ず 'error' を拾う（dev や別インスタンスが 4319 を
+  // 使用中なら MCP だけスキップし、アプリ本体は通常起動させる）。
   try {
-    createMcpServer(() => latestSnapshot).listen(MCP_PORT, '127.0.0.1', () => {
+    const mcpServer = createMcpServer(() => latestSnapshot)
+    mcpServer.on('error', (e: NodeJS.ErrnoException) => {
+      if (e.code === 'EADDRINUSE') {
+        console.warn(
+          `[local-jam] ポート ${MCP_PORT} が使用中のため MCP サーバは起動しません（dev や別インスタンスが起動中の可能性）。アプリは通常どおり使えます。`
+        )
+      } else {
+        console.error('[local-jam] MCP server error:', e)
+      }
+    })
+    mcpServer.listen(MCP_PORT, '127.0.0.1', () => {
       console.log(`[local-jam] MCP server: http://127.0.0.1:${MCP_PORT}/mcp`)
     })
   } catch (e) {
