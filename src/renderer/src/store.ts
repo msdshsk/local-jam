@@ -18,7 +18,8 @@ import type {
   GroupChild,
   NoteData,
   CommentData,
-  MyTemplate
+  MyTemplate,
+  TemplateMeta
 } from './types'
 import { findScreenAt, type XY } from './geometry'
 import { atomDefaults, resizePolicy } from './parts'
@@ -323,16 +324,21 @@ interface JamState {
   editingTableId: string | null
   openTableEditor: (id: string) => void
   closeTableEditor: () => void
+  namingTemplate: boolean
+  openTemplateNamer: () => void
+  closeTemplateNamer: () => void
   updateTable: (id: string, patch: { columns?: string[]; rows?: number; cells?: string[][] }) => void
   helpers: { vx?: number; hy?: number } | null
   zoom: number
   setZoom: (z: number) => void
   clearHelpers: () => void
-  myTemplates: MyTemplate[]
+  myTemplates: TemplateMeta[]
   refreshTemplates: () => void
   saveSelectionAsTemplate: (name: string) => void
   deleteTemplate: (id: string) => void
   dropTemplate: (id: string, pos: XY) => void
+  exportTemplate: (id: string) => void
+  importTemplate: () => void
 }
 
 export const useJamStore = create<JamState>((set, get) => ({
@@ -343,6 +349,7 @@ export const useJamStore = create<JamState>((set, get) => ({
   inspectorOpen: false,
   notesVisible: true,
   editingTableId: null,
+  namingTemplate: false,
   helpers: null,
   zoom: 0.5,
   myTemplates: [],
@@ -676,6 +683,10 @@ export const useJamStore = create<JamState>((set, get) => ({
   openTableEditor: (id) => set(() => ({ editingTableId: id })),
   closeTableEditor: () => set(() => ({ editingTableId: null })),
 
+  // テンプレート化の名前入力（Electronは window.prompt 非対応のため自前モーダル）
+  openTemplateNamer: () => set(() => ({ namingTemplate: true })),
+  closeTemplateNamer: () => set(() => ({ namingTemplate: false })),
+
   // テーブル専用: 列(見出し)・行数・セルを正規化して保存
   updateTable: (id, patch) =>
     set((s) => ({
@@ -825,15 +836,15 @@ export const useJamStore = create<JamState>((set, get) => ({
 
   refreshTemplates: async () => {
     if (!window.jam?.templatesList) return
-    const list = await window.jam.templatesList()
-    set({ myTemplates: list as MyTemplate[] })
+    set({ myTemplates: await window.jam.templatesList() })
   },
 
-  // 選択範囲を自己完結スナップショット化して保存（トップレベルは絶対座標・親なし）
+  // 選択範囲を自己完結スナップショット化して保存（トップレベルは絶対座標・親なし）。
+  // 画像等は main 側で .ljat の assets に抽出される。
   saveSelectionAsTemplate: async (name) => {
     const s = get()
     const sel = s.nodes.filter((n) => n.selected)
-    if (sel.length === 0 || !window.jam?.templatesAdd) return
+    if (sel.length === 0 || !window.jam?.templatesSave) return
     const selIds = new Set(sel.map((n) => n.id))
     const byId = new Map(s.nodes.map((n) => [n.id, n]))
     const snapshot = sel.map((n) => {
@@ -847,23 +858,34 @@ export const useJamStore = create<JamState>((set, get) => ({
       }
       return clone
     })
-    const tpl: MyTemplate = { id: newId('tpl'), name, nodes: snapshot }
-    const list = await window.jam.templatesAdd(tpl)
-    set({ myTemplates: list as MyTemplate[] })
+    const list = await window.jam.templatesSave({ name, nodes: snapshot })
+    set({ myTemplates: list })
   },
 
   deleteTemplate: async (id) => {
     if (!window.jam?.templatesRemove) return
-    const list = await window.jam.templatesRemove(id)
-    set({ myTemplates: list as MyTemplate[] })
+    set({ myTemplates: await window.jam.templatesRemove(id) })
   },
 
-  dropTemplate: (id, pos) =>
+  // 配置: 本体（画像はassetsからdata URLへ復元済み）を都度取得して展開
+  dropTemplate: async (id, pos) => {
+    if (!window.jam?.templatesGet) return
+    const tpl = (await window.jam.templatesGet(id)) as MyTemplate | null
+    if (!tpl || !Array.isArray(tpl.nodes)) return
     set((s) => {
-      const tpl = s.myTemplates.find((t) => t.id === id)
-      if (!tpl) return {}
       const created = instantiateTemplate(tpl.nodes, s.nodes, pos)
       const existing = s.nodes.map((n) => (n.selected ? { ...n, selected: false } : n))
       return { nodes: sortByParent([...existing, ...created]) }
     })
+  },
+
+  exportTemplate: async (id) => {
+    if (!window.jam?.templatesExport) return
+    await window.jam.templatesExport(id)
+  },
+
+  importTemplate: async () => {
+    if (!window.jam?.templatesImport) return
+    set({ myTemplates: await window.jam.templatesImport() })
+  }
 }))

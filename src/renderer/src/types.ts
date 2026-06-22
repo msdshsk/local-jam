@@ -136,6 +136,13 @@ export interface MyTemplate {
   id: string
   name: string
   nodes: JamNode[]
+  edges?: JamEdge[]
+}
+
+// パレット一覧用の軽量メタ（本体は .ljat から都度取得）
+export interface TemplateMeta {
+  id: string
+  name: string
 }
 
 // .ljam パッケージ内 document.json の中身

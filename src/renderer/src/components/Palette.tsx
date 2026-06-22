@@ -44,6 +44,8 @@ export default function Palette() {
   const myTemplates = useJamStore((s) => s.myTemplates)
   const refreshTemplates = useJamStore((s) => s.refreshTemplates)
   const deleteTemplate = useJamStore((s) => s.deleteTemplate)
+  const exportTemplate = useJamStore((s) => s.exportTemplate)
+  const importTemplate = useJamStore((s) => s.importTemplate)
 
   useEffect(() => {
     refreshTemplates()
@@ -53,9 +55,17 @@ export default function Palette() {
   return (
     <aside className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-r border-jam-line bg-gray-50 p-3">
       <Section title="マイテンプレート">
+        <button
+          type="button"
+          onClick={() => importTemplate()}
+          title=".ljat ファイルを取り込み"
+          className="rounded border border-dashed border-jam-line bg-white px-2 py-1 text-xs text-jam-muted hover:bg-gray-100 hover:text-jam-ink"
+        >
+          ＋ 取り込み（.ljat）
+        </button>
         {myTemplates.length === 0 ? (
           <p className="text-[11px] leading-relaxed text-jam-muted">
-            複数選択 → 右クリック「テンプレート化」で、ここに追加されます。
+            複数選択 → 右クリック「テンプレート化」で、ここに追加されます。配布は ⬇ で書き出し。
           </p>
         ) : (
           myTemplates.map((t) => (
@@ -63,9 +73,20 @@ export default function Palette() {
               key={t.id}
               draggable
               onDragStart={(e) => onDragStart(e, `mytpl:${t.id}`)}
-              className="flex cursor-grab items-center justify-between gap-1 rounded border border-dashed border-jam-line bg-white px-2 py-1.5 font-hand text-sm text-jam-ink active:cursor-grabbing"
+              className="flex cursor-grab items-center gap-1 rounded border border-dashed border-jam-line bg-white px-2 py-1.5 font-hand text-sm text-jam-ink active:cursor-grabbing"
             >
-              <span className="truncate">{t.name}</span>
+              <span className="min-w-0 flex-1 truncate">{t.name}</span>
+              <button
+                type="button"
+                title="書き出し（.ljat）"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exportTemplate(t.id)
+                }}
+                className="shrink-0 px-1 text-jam-muted hover:text-jam-ink"
+              >
+                ⬇
+              </button>
               <button
                 type="button"
                 title="削除"

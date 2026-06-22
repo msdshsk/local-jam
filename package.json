@@ -1,6 +1,6 @@
 {
   "name": "local-jam",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "FigJamとFigmaの中間を狙う、Webアプリの超簡単モック作成ツール",
   "main": "./out/main/index.js",
   "author": "msd.shsk",

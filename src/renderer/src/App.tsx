@@ -4,6 +4,7 @@ import Toolbar from './components/Toolbar'
 import Palette from './components/Palette'
 import Inspector from './components/Inspector'
 import TableEditor from './components/TableEditor'
+import TemplateNameModal from './components/TemplateNameModal'
 import Autosave from './components/Autosave'
 import Canvas from './Canvas'
 
@@ -22,6 +23,7 @@ export default function App() {
         </div>
       </div>
       <TableEditor />
+      <TemplateNameModal />
       <Autosave />
     </ReactFlowProvider>
   )

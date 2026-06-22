@@ -22,7 +22,7 @@ export default function ContextMenu({ x, y, pastePos, onClose }: Props) {
   const paste = useJamStore((s) => s.paste)
   const alignSelected = useJamStore((s) => s.alignSelected)
   const connectSelected = useJamStore((s) => s.connectSelected)
-  const saveSelectionAsTemplate = useJamStore((s) => s.saveSelectionAsTemplate)
+  const openTemplateNamer = useJamStore((s) => s.openTemplateNamer)
   const setInspectorOpen = useJamStore((s) => s.setInspectorOpen)
 
   const [alignSub, setAlignSub] = useState(false)
@@ -84,8 +84,7 @@ export default function ContextMenu({ x, y, pastePos, onClose }: Props) {
           className={item}
           disabled={!canTemplate}
           onClick={() => {
-            const n = window.prompt('テンプレート名を入力')
-            if (n) saveSelectionAsTemplate(n)
+            openTemplateNamer()
             onClose()
           }}
         >

@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
-import { readFile, writeFile, rm } from 'node:fs/promises'
+import { readFile, writeFile, rm, mkdir, readdir, rename, copyFile } from 'node:fs/promises'
 import JSZip from 'jszip'
 import { createMcpServer } from './mcp'
+import { packTemplate, unpackTemplate, readMeta } from './ljat'
 
 // MCP(読み取り専用)に渡す最新スナップショット { doc, filePath }。オートセーブ payload を流用。
 let latestSnapshot: unknown = null
@@ -103,26 +104,112 @@ function registerIpc(): void {
     }
   })
 
-  // マイテンプレート（userData/templates.json, アプリ横断）
-  const templatesPath = (): string => join(app.getPath('userData'), 'templates.json')
-  const readTemplates = async (): Promise<{ id: string }[]> => {
+  // マイテンプレート: userData/templates/<id>.ljat を 1テンプレ=1ファイル（ZIP+画像assets）で保持
+  const templatesDir = (): string => join(app.getPath('userData'), 'templates')
+  const tplPath = (id: string): string => join(templatesDir(), `${id}.ljat`)
+  const genTplId = (): string => `tpl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`
+
+  const listTemplateMeta = async (): Promise<{ id: string; name: string }[]> => {
+    await mkdir(templatesDir(), { recursive: true })
+    const files = (await readdir(templatesDir())).filter((f) => f.endsWith('.ljat'))
+    const out: { id: string; name: string }[] = []
+    for (const f of files) {
+      try {
+        out.push(await readMeta(await readFile(join(templatesDir(), f))))
+      } catch {
+        // 壊れたファイルは無視
+      }
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  // 旧 templates.json があれば一度だけ .ljat へ移行
+  const migrateOldTemplates = async (): Promise<void> => {
+    const oldPath = join(app.getPath('userData'), 'templates.json')
+    let old: unknown
     try {
-      return JSON.parse(await readFile(templatesPath(), 'utf-8'))
+      old = JSON.parse(await readFile(oldPath, 'utf-8'))
     } catch {
-      return []
+      return
+    }
+    if (Array.isArray(old)) {
+      for (const t of old as { name?: string; nodes?: unknown[]; edges?: unknown[] }[]) {
+        const id = genTplId()
+        await writeFile(tplPath(id), await packTemplate({ id, name: t.name ?? '(無題)', nodes: t.nodes ?? [], edges: t.edges }))
+      }
+    }
+    try {
+      await rename(oldPath, oldPath + '.bak')
+    } catch {
+      /* noop */
     }
   }
-  ipcMain.handle('templates:list', async () => readTemplates())
-  ipcMain.handle('templates:add', async (_e, tpl: { id: string }) => {
-    const list = await readTemplates()
-    list.push(tpl)
-    await writeFile(templatesPath(), JSON.stringify(list))
-    return list
+
+  ipcMain.handle('templates:list', async () => {
+    await mkdir(templatesDir(), { recursive: true })
+    const files = (await readdir(templatesDir())).filter((f) => f.endsWith('.ljat'))
+    if (files.length === 0) await migrateOldTemplates()
+    return listTemplateMeta()
+  })
+  ipcMain.handle('templates:get', async (_e, id: string) => {
+    try {
+      return await unpackTemplate(await readFile(tplPath(id)))
+    } catch {
+      return null
+    }
+  })
+  ipcMain.handle('templates:save', async (_e, tpl: { name: string; nodes: unknown[]; edges?: unknown[] }) => {
+    await mkdir(templatesDir(), { recursive: true })
+    const id = genTplId()
+    await writeFile(tplPath(id), await packTemplate({ id, name: tpl.name, nodes: tpl.nodes, edges: tpl.edges }))
+    return listTemplateMeta()
   })
   ipcMain.handle('templates:remove', async (_e, id: string) => {
-    const list = (await readTemplates()).filter((t) => t.id !== id)
-    await writeFile(templatesPath(), JSON.stringify(list))
-    return list
+    try {
+      await rm(tplPath(id))
+    } catch {
+      /* noop */
+    }
+    return listTemplateMeta()
+  })
+  ipcMain.handle('templates:export', async (_e, id: string) => {
+    const win = BrowserWindow.getFocusedWindow()
+    let name = id
+    try {
+      name = (await readMeta(await readFile(tplPath(id)))).name
+    } catch {
+      /* noop */
+    }
+    const opts: Electron.SaveDialogOptions = {
+      title: 'テンプレートを書き出し',
+      defaultPath: `${name}.ljat`,
+      filters: [{ name: 'local-jam テンプレート', extensions: ['ljat'] }]
+    }
+    const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (res.canceled || !res.filePath) return null
+    await copyFile(tplPath(id), res.filePath)
+    return res.filePath
+  })
+  ipcMain.handle('templates:import', async () => {
+    const win = BrowserWindow.getFocusedWindow()
+    const opts: Electron.OpenDialogOptions = {
+      title: 'テンプレートを取り込み',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'local-jam テンプレート', extensions: ['ljat'] }]
+    }
+    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (res.canceled || res.filePaths.length === 0) return listTemplateMeta()
+    await mkdir(templatesDir(), { recursive: true })
+    for (const p of res.filePaths) {
+      try {
+        const tpl = await unpackTemplate(await readFile(p)) // assets を data URL へ復元
+        const id = genTplId() // 衝突回避で新ID採番
+        await writeFile(tplPath(id), await packTemplate({ id, name: tpl.name, nodes: tpl.nodes, edges: tpl.edges }))
+      } catch {
+        // 壊れた/非対応ファイルはスキップ
+      }
+    }
+    return listTemplateMeta()
   })
 
   // 書き出し（PNG/PDF）: ダイアログで保存先を選びバイナリを書き込む

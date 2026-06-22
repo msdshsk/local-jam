@@ -3,10 +3,11 @@ import { useReactFlow } from '@xyflow/react'
 import { useJamStore } from '../store'
 import { loadImageDims, fitSize } from '../imageUtil'
 import { exportPng, exportPdf } from '../exportImage'
+import { IconGlyph } from '../icons'
 import type { JamDocument } from '../types'
 
-// この幅未満になったら編集系を「編集 ▾」に畳む（インライン全部が収まる幅を確保）
-const COLLAPSE_WIDTH = 1520
+// この幅未満になったら編集系を「編集 ▾」に畳む（ファイル群はアイコン化で常時表示）
+const COLLAPSE_WIDTH = 1300
 
 type Act =
   | { type: 'sep' }
@@ -16,6 +17,7 @@ type Act =
       label: string
       full?: string
       title?: string
+      icon?: string
       onClick: () => void
       enabled: boolean
       danger?: boolean
@@ -30,7 +32,7 @@ export default function Toolbar() {
   const scaleSelected = useJamStore((s) => s.scaleSelected)
   const alignSelected = useJamStore((s) => s.alignSelected)
   const connectSelected = useJamStore((s) => s.connectSelected)
-  const saveSelectionAsTemplate = useJamStore((s) => s.saveSelectionAsTemplate)
+  const openTemplateNamer = useJamStore((s) => s.openTemplateNamer)
   const deleteSelected = useJamStore((s) => s.deleteSelected)
   const nodes = useJamStore((s) => s.nodes)
   const edges = useJamStore((s) => s.edges)
@@ -177,17 +179,24 @@ export default function Toolbar() {
   const on = 'border-jam-ink bg-gray-100 text-jam-ink hover:bg-gray-200'
   const off = 'border-jam-line bg-gray-50 text-jam-line cursor-not-allowed'
   const danger = 'border-red-400 bg-red-50 text-red-600 hover:bg-red-100'
+  // アイコンボタン（正方形・常時表示のファイル操作群用）
+  const iconBtn = 'flex shrink-0 items-center justify-center rounded border p-1.5 '
+  const Ico = ({ name }: { name: string }): JSX.Element => (
+    <span className="block h-5 w-5">
+      <IconGlyph name={name} />
+    </span>
+  )
 
   // 編集系アクション（インライン表示／畳んだ時のドロップダウンで共用）
   const acts: Act[] = [
-    { type: 'btn', key: 'group', label: 'グループ化', onClick: groupSelected, enabled: canGroup },
-    { type: 'btn', key: 'ungroup', label: '解除', full: 'グループ解除', onClick: ungroupSelected, enabled: canUngroup },
+    { type: 'btn', key: 'group', label: 'グループ化', icon: 'group', onClick: groupSelected, enabled: canGroup },
+    { type: 'btn', key: 'ungroup', label: '解除', full: 'グループ解除', icon: 'ungroup', onClick: ungroupSelected, enabled: canUngroup },
     { type: 'sep' },
-    { type: 'btn', key: 'front', label: '最前面', onClick: bringToFront, enabled: canZ },
-    { type: 'btn', key: 'back', label: '最背面', onClick: sendToBack, enabled: canZ },
+    { type: 'btn', key: 'front', label: '最前面', icon: 'to-top', onClick: bringToFront, enabled: canZ },
+    { type: 'btn', key: 'back', label: '最背面', icon: 'to-bottom', onClick: sendToBack, enabled: canZ },
     { type: 'sep' },
-    { type: 'btn', key: 'big', label: '大きく', onClick: () => scaleSelected(1.1), enabled: canScale },
-    { type: 'btn', key: 'small', label: '小さく', onClick: () => scaleSelected(1 / 1.1), enabled: canScale },
+    { type: 'btn', key: 'big', label: '大きく', icon: 'maximize', onClick: () => scaleSelected(1.1), enabled: canScale },
+    { type: 'btn', key: 'small', label: '小さく', icon: 'minimize', onClick: () => scaleSelected(1 / 1.1), enabled: canScale },
     { type: 'sep' },
     { type: 'btn', key: 'al', label: '⬅', full: '左揃え', title: '左揃え', onClick: () => alignSelected('left'), enabled: canAlign },
     { type: 'btn', key: 'ar', label: '➡', full: '右揃え', title: '右揃え', onClick: () => alignSelected('right'), enabled: canAlign },
@@ -204,14 +213,12 @@ export default function Toolbar() {
       label: 'テンプレ化',
       full: 'テンプレート化',
       title: '選択をテンプレート化',
-      onClick: () => {
-        const n = window.prompt('テンプレート名を入力')
-        if (n) saveSelectionAsTemplate(n)
-      },
+      icon: 'star',
+      onClick: () => openTemplateNamer(),
       enabled: canTemplate
     },
     { type: 'sep' },
-    { type: 'btn', key: 'del', label: '削除', onClick: deleteSelected, enabled: canDelete, danger: true }
+    { type: 'btn', key: 'del', label: '削除', icon: 'trash', onClick: deleteSelected, enabled: canDelete, danger: true }
   ]
 
   const dropItem =
@@ -220,25 +227,31 @@ export default function Toolbar() {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-jam-line bg-white px-3">
       <span className="font-hand text-base font-bold text-jam-ink">local-jam</span>
-      <button type="button" onClick={onNew} className={base + on}>
-        新規
+      <button type="button" onClick={onNew} className={iconBtn + on} title="新規">
+        <Ico name="file-plus" />
       </button>
-      <button type="button" onClick={onOpen} className={base + on}>
-        開く
+      <button type="button" onClick={onOpen} className={iconBtn + on} title="開く">
+        <Ico name="folder" />
       </button>
-      <button type="button" onClick={onSave} className={base + on}>
-        保存
+      <button type="button" onClick={onSave} className={iconBtn + on} title="保存">
+        <Ico name="save" />
       </button>
-      <button type="button" onClick={onSaveAs} className={base + on}>
-        別名保存
+      <button type="button" onClick={onSaveAs} className={iconBtn + on} title="別名で保存">
+        <Ico name="copy" />
       </button>
       <span className="max-w-[140px] shrink-0 truncate text-xs text-jam-muted" title={filePath ?? '未保存'}>
         {fileName}
       </span>
 
       <div className="relative">
-        <button type="button" onClick={() => setExportOpen((o) => !o)} className={base + on} disabled={busy}>
-          {busy ? '書き出し中…' : '書き出し ▾'}
+        <button
+          type="button"
+          onClick={() => setExportOpen((o) => !o)}
+          className={iconBtn + on}
+          disabled={busy}
+          title={busy ? '書き出し中…' : '書き出し（PNG / PDF）'}
+        >
+          <Ico name="download" />
         </button>
         {exportOpen && (
           <>
@@ -293,14 +306,19 @@ export default function Toolbar() {
       </div>
 
       <span className="mx-1 h-5 w-px shrink-0 bg-jam-line" />
-      <button type="button" onClick={onAddFrame} className={base + on}>
-        ＋ 空フレーム
+      <button type="button" onClick={onAddFrame} className={iconBtn + on} title="空フレーム（分類ゾーン）を追加">
+        <Ico name="frame" />
       </button>
-      <button type="button" onClick={toggleNotesVisible} className={base + on} title="メモ・コメントの表示切替">
-        {notesVisible ? 'メモ非表示' : 'メモ表示'}
+      <button
+        type="button"
+        onClick={toggleNotesVisible}
+        className={iconBtn + on}
+        title={notesVisible ? 'メモ・コメントを隠す' : 'メモ・コメントを表示'}
+      >
+        <Ico name={notesVisible ? 'eye' : 'eye-off'} />
       </button>
-      <button type="button" onClick={onInsertImage} className={base + on} title="画像ファイルを挿入">
-        画像挿入
+      <button type="button" onClick={onInsertImage} className={iconBtn + on} title="画像ファイルを挿入">
+        <Ico name="image" />
       </button>
       <span className="mx-1 h-5 w-px shrink-0 bg-jam-line" />
 
@@ -312,12 +330,12 @@ export default function Toolbar() {
             <button
               key={a.key}
               type="button"
-              title={a.title}
+              title={a.title ?? a.full ?? a.label}
               onClick={a.onClick}
               disabled={!a.enabled}
-              className={base + (a.enabled ? (a.danger ? danger : on) : off)}
+              className={(a.icon ? iconBtn : base) + (a.enabled ? (a.danger ? danger : on) : off)}
             >
-              {a.label}
+              {a.icon ? <Ico name={a.icon} /> : a.label}
             </button>
           )
         )}

@@ -81,6 +81,7 @@ export default function Canvas() {
         const selCount = useJamStore.getState().nodes.filter((n) => n.selected).length
         if (selCount > 1) return
         e.preventDefault()
+        closeMenu() // 右クリックメニューのバックドロップが残って入力を覆うのを防ぐ
         toggleInspector()
         return
       }
@@ -96,7 +97,7 @@ export default function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [copySelected, paste, toggleInspector])
+  }, [copySelected, paste, toggleInspector, closeMenu])
 
   const onDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -127,7 +128,7 @@ export default function Canvas() {
       else if (kind === 'bundle') addBundle(id, pos)
       else if (kind === 'note') addNote(pos)
       else if (kind === 'comment') addComment(pos)
-      else if (kind === 'mytpl') dropTemplate(id, pos)
+      else if (kind === 'mytpl') void dropTemplate(id, pos)
     },
     [rf, addAtom, addBundle, addNote, addComment, dropTemplate, addImage]
   )

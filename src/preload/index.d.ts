@@ -15,9 +15,12 @@ declare global {
       autosaveWrite: (payload: unknown) => Promise<void>
       autosaveRead: () => Promise<{ doc: RecoveryDoc; filePath: string | null } | null>
       autosaveClear: () => Promise<void>
-      templatesList: () => Promise<unknown[]>
-      templatesAdd: (tpl: unknown) => Promise<unknown[]>
-      templatesRemove: (id: string) => Promise<unknown[]>
+      templatesList: () => Promise<{ id: string; name: string }[]>
+      templatesGet: (id: string) => Promise<unknown>
+      templatesSave: (tpl: unknown) => Promise<{ id: string; name: string }[]>
+      templatesRemove: (id: string) => Promise<{ id: string; name: string }[]>
+      templatesExport: (id: string) => Promise<string | null>
+      templatesImport: () => Promise<{ id: string; name: string }[]>
       pickImage: () => Promise<string | null>
       exportSave: (payload: {
         defaultPath: string

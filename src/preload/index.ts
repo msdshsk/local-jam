@@ -9,9 +9,14 @@ const api = {
   autosaveWrite: (payload: unknown): Promise<void> => ipcRenderer.invoke('recovery:write', payload),
   autosaveRead: (): Promise<unknown> => ipcRenderer.invoke('recovery:read'),
   autosaveClear: (): Promise<void> => ipcRenderer.invoke('recovery:clear'),
-  templatesList: (): Promise<unknown[]> => ipcRenderer.invoke('templates:list'),
-  templatesAdd: (tpl: unknown): Promise<unknown[]> => ipcRenderer.invoke('templates:add', tpl),
-  templatesRemove: (id: string): Promise<unknown[]> => ipcRenderer.invoke('templates:remove', id),
+  templatesList: (): Promise<{ id: string; name: string }[]> => ipcRenderer.invoke('templates:list'),
+  templatesGet: (id: string): Promise<unknown> => ipcRenderer.invoke('templates:get', id),
+  templatesSave: (tpl: unknown): Promise<{ id: string; name: string }[]> =>
+    ipcRenderer.invoke('templates:save', tpl),
+  templatesRemove: (id: string): Promise<{ id: string; name: string }[]> =>
+    ipcRenderer.invoke('templates:remove', id),
+  templatesExport: (id: string): Promise<string | null> => ipcRenderer.invoke('templates:export', id),
+  templatesImport: (): Promise<{ id: string; name: string }[]> => ipcRenderer.invoke('templates:import'),
   pickImage: (): Promise<string | null> => ipcRenderer.invoke('image:pick'),
   exportSave: (payload: {
     defaultPath: string
