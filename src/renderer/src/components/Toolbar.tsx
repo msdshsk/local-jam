@@ -33,6 +33,7 @@ export default function Toolbar() {
   const alignSelected = useJamStore((s) => s.alignSelected)
   const connectSelected = useJamStore((s) => s.connectSelected)
   const openTemplateNamer = useJamStore((s) => s.openTemplateNamer)
+  const setHelpOpen = useJamStore((s) => s.setHelpOpen)
   const deleteSelected = useJamStore((s) => s.deleteSelected)
   const nodes = useJamStore((s) => s.nodes)
   const edges = useJamStore((s) => s.edges)
@@ -374,6 +375,9 @@ export default function Toolbar() {
       )}
 
       <div className="flex-1" />
+      <button type="button" onClick={() => setHelpOpen(true)} className={iconBtn + on} title="使い方・ヘルプ">
+        <Ico name="help" />
+      </button>
     </div>
   )
 }

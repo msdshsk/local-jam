@@ -327,6 +327,8 @@ interface JamState {
   namingTemplate: boolean
   openTemplateNamer: () => void
   closeTemplateNamer: () => void
+  helpOpen: boolean
+  setHelpOpen: (b: boolean) => void
   updateTable: (id: string, patch: { columns?: string[]; rows?: number; cells?: string[][] }) => void
   helpers: { vx?: number; hy?: number } | null
   zoom: number
@@ -350,6 +352,7 @@ export const useJamStore = create<JamState>((set, get) => ({
   notesVisible: true,
   editingTableId: null,
   namingTemplate: false,
+  helpOpen: false,
   helpers: null,
   zoom: 0.5,
   myTemplates: [],
@@ -686,6 +689,8 @@ export const useJamStore = create<JamState>((set, get) => ({
   // テンプレート化の名前入力（Electronは window.prompt 非対応のため自前モーダル）
   openTemplateNamer: () => set(() => ({ namingTemplate: true })),
   closeTemplateNamer: () => set(() => ({ namingTemplate: false })),
+
+  setHelpOpen: (b) => set(() => ({ helpOpen: b })),
 
   // テーブル専用: 列(見出し)・行数・セルを正規化して保存
   updateTable: (id, patch) =>
