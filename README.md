@@ -59,6 +59,20 @@ npm run test:all   # 単体 + E2E
 
 > E2E は初回のみブラウザ取得が必要です：`npx playwright install chromium`
 
+### 配布ビルド（インストーラ）
+
+[electron-builder](https://www.electron.build/) で各OS向けの配布物を作ります（`build/icon.png` から各形式アイコンを自動生成）。
+
+```bash
+npm run dist:win    # Windows: NSIS インストーラ（dist/*.exe）
+npm run dist:mac    # macOS: dmg（macOS 上で実行）
+npm run dist:linux  # Linux: AppImage
+npm run dist        # 現在のOS向け
+```
+
+出力は `dist/` に生成されます（`.gitignore` 済み）。設定は `electron-builder.yml`。
+※ コード署名は未設定のため、未署名ビルドになります（Windows は SmartScreen の警告が出ます）。
+
 ---
 
 ## Claude 連携（MCP・読み取り専用）

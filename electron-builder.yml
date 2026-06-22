@@ -1,0 +1,30 @@
+appId: com.msdshsk.local-jam
+productName: local-jam
+copyright: Copyright © 2026 msd.shsk
+
+directories:
+  output: dist
+  buildResources: build # build/icon.png(1024) から各OS用アイコンを自動生成
+
+# パッケージに含めるもの（out= ビルド済み main/preload/renderer。node_modules は prod のみ自動同梱）
+files:
+  - out/**/*
+  - package.json
+
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.developer-tools
+
+linux:
+  target:
+    - AppImage
+  category: Development
